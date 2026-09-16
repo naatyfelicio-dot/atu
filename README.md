@@ -7020,12 +7020,12 @@ local function buildGui()
     mainGuiRef = gui
 
     local IS_MOBILE = UIS.TouchEnabled and not UIS.KeyboardEnabled
-    local BASE_W = IS_MOBILE and 290 or 320
-    local BASE_H = IS_MOBILE and 470 or 480
+    local BASE_W = IS_MOBILE and 280 or 290
+    local BASE_H = IS_MOBILE and 425 or 440
     hubSizeScale = math.clamp(tonumber(hubSizeScale) or 1,1,1.25)
     local W = math.floor(BASE_W * hubSizeScale)
     local H = math.floor(BASE_H * hubSizeScale)
-    local HEADER_H = 50
+    local HEADER_H = 46
 
     local shadow = Instance.new("Frame", gui)
     shadow.Size = UDim2.new(0, W+8, 0, H+8)
@@ -7239,7 +7239,7 @@ local function buildGui()
     makeDraggable(mainFrame,{shadow},header)
 
     -- Tabs: apenas reorganiza a GUI; nenhuma logica das funcoes foi alterada.
-    local TAB_H = 34
+    local TAB_H = 30
     local tabBar = Instance.new("Frame",mainFrame)
     tabBar.Size = UDim2.new(1,0,0,TAB_H)
     tabBar.Position = UDim2.new(0,0,0,HEADER_H)
@@ -7340,7 +7340,7 @@ local function buildGui()
 
     local order = 0
     local function LO() order += 1 return order end
-    local ROW_H = IS_MOBILE and 36 or 32
+    local ROW_H = IS_MOBILE and 32 or 29
 
     local function makeGap(px)
         local f = Instance.new("Frame",scroll)
