@@ -7022,9 +7022,10 @@ local function buildGui()
     local IS_MOBILE = UIS.TouchEnabled and not UIS.KeyboardEnabled
     local BASE_W = IS_MOBILE and 280 or 290
     local BASE_H = IS_MOBILE and 425 or 440
-    hubSizeScale = math.clamp(tonumber(hubSizeScale) or 1,1,1.25)
-    local W = math.floor(BASE_W * hubSizeScale)
-    local H = math.floor(BASE_H * hubSizeScale)
+    -- Hub permanece sempre no tamanho compacto (funcao de aumentar removida).
+    hubSizeScale = 1
+    local W = BASE_W
+    local H = BASE_H
     local HEADER_H = 46
 
     local shadow = Instance.new("Frame", gui)
@@ -7205,36 +7206,8 @@ local function buildGui()
         return b
     end
 
-    local sizeBtn = makeHeaderBtn(hubSizeScale > 1 and "−" or "+",64,16)
     local minBtn = makeHeaderBtn("—",36,13)
     local closeBtn = makeHeaderBtn("×",8,16)
-
-    local function applyHubSizeScale(newScale)
-        newScale=math.clamp(tonumber(newScale) or 1,1,1.25)
-        local oldW=mainFrame.Size.X.Offset
-        local oldH=mainFrame.Size.Y.Offset
-        local newW=math.floor(BASE_W*newScale)
-        local newH=math.floor(BASE_H*newScale)
-        local pos=mainFrame.Position
-
-        local centerOffsetX=pos.X.Offset+(oldW/2)
-        local centerOffsetY=pos.Y.Offset+(oldH/2)
-
-        hubSizeScale=newScale
-        mainFrame.Size=UDim2.new(0,newW,0,newH)
-        mainFrame.Position=UDim2.new(
-            pos.X.Scale,centerOffsetX-(newW/2),
-            pos.Y.Scale,centerOffsetY-(newH/2)
-        )
-        shadow.Size=UDim2.new(0,newW+8,0,newH+8)
-        syncShadow()
-        sizeBtn.Text=hubSizeScale>1 and "−" or "+"
-    end
-
-    sizeBtn.Activated:Connect(function()
-        applyHubSizeScale(hubSizeScale>1 and 1 or 1.25)
-        saveConfig()
-    end)
 
     makeDraggable(mainFrame,{shadow},header)
 
@@ -8286,7 +8259,8 @@ local function loadConfigKeys()
     if cfg.mobileButtonsLocked~=nil then mobileButtonsLocked=cfg.mobileButtonsLocked==true end
     if cfg.uiLocked~=nil then uiLocked=cfg.uiLocked==true end
     if cfg.mobileButtonsSize~=nil then mobileButtonsSize=cfg.mobileButtonsSize end
-    if cfg.hubSizeScale~=nil then hubSizeScale=math.clamp(tonumber(cfg.hubSizeScale) or 1,1,1.25) end
+    -- Ignora configuracoes antigas de escala para evitar o hub gigante no mobile.
+    hubSizeScale=1
     if cfg.circleButtonsEnabled~=nil then circleButtonsEnabled=cfg.circleButtonsEnabled==true end
     if cfg.antiKick~=nil then antiKickEnabled=cfg.antiKick==true end
     if cfg.safeMode~=nil then safeModeEnabled=cfg.safeMode==true end
