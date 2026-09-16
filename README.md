@@ -128,7 +128,6 @@ local function getK7LogoAsset()
 end
 
 
-
 local function destroyOldGui(name)
     if not name then return end
     pcall(function()
@@ -147,8 +146,6 @@ local function destroyOldGui(name)
         end
     end)
 end
-
-
 
 
 local K7_SKY_TAG = "K7SkyTheme"
@@ -806,7 +803,7 @@ AIMBOT_SPEED=58
 LAGGER_AIMBOT_SPEED=40
 tpBatEnabled=false
 aimbotV2Enabled=false
-aimbotMode="normal"  -- "normal" | "bypass"
+aimbotMode="normal"
 autoSwingEnabled=true
 autoMoveSwingEnabled=false
 autoMoveSwingInterval=0.3
@@ -864,9 +861,11 @@ MIRROR_TP_DROP_THRESHOLD,MIRROR_TP_DOWN_Y=3,-7.00
 setMirrorTPVisual=nil
 guiTransparencyEnabled,mobileButtonsEnabled,mobileButtonsLocked=false,true,false
 mobileButtonsSize=80
-stealBarPos = nil -- {sx,ox,sy,oy} persisted
+hubSizeScale=1
+stealBarPos = nil
 circleButtonsEnabled=false
 stealBarFrame=nil
+stealBarGuiRef=nil
 progressFill=nil
 setStealStatusText=nil
 mobBtnRefs={}
@@ -876,9 +875,8 @@ fovOptions={80,120,180}
 fovIndex=1
 laggerModePillRef=nil
 carryModePillRef=nil
-autoSwitchSpeedEnabled=false -- Auto Carry Speed toggle
 mobBtnTransparencyEnabled=false
-perButtonDragEnabled=true -- each mobile button drags independently
+perButtonDragEnabled=true
 antiKickEnabled=false
 safeModeEnabled=false
 setSafeModeVisual=nil
@@ -886,11 +884,11 @@ antiKickSetVisual=nil
 brainrotDetected=false
 activeBatBillboard=nil
 activeMedusaBillboard=nil
-ragdollGuiEnabled=false  -- removed from GUI
+ragdollGuiEnabled=false
 
 introEnabled=true
-selectedIntroMusic=1 -- 1..4 only
-persistentRagdollGui=nil -- reference to a persistent "always on" display
+selectedIntroMusic=1
+persistentRagdollGui=nil
 uiLocked=false
 infJumpMode="manual"
 holdInfJumpConn=nil
@@ -899,7 +897,7 @@ DROP_ASCEND_SPEED=150
 
 MOB_POS_FILE="k7duels_btnpos.json"
 forceDefaultBtnPos=false
-activeMobDrag=nil -- only one mobile button can drag at a time
+activeMobDrag=nil
 local function loadBtnPositions()
     local data={}
     pcall(function()
@@ -1001,7 +999,7 @@ _G._AdaptStyleCooldownVisuals = function(char)
 
                     if numberLabel then
                         pcall(function()
-                            bb.Size = UDim2.new(0, 92, 0, 26)
+                            bb.Size = UDim2.new(0, 140, 0, 42)
                             bb.AlwaysOnTop = true
                             bb.LightInfluence = 0
                         end)
@@ -1020,7 +1018,7 @@ _G._AdaptStyleCooldownVisuals = function(char)
                                     obj.TextStrokeTransparency = 0
                                     obj.Font = Enum.Font.GothamBold
                                     obj.TextScaled = false
-                                    obj.TextSize = 18
+                                    obj.TextSize = 28
                                     obj.TextXAlignment = Enum.TextXAlignment.Center
                                     obj.TextYAlignment = Enum.TextYAlignment.Center
                                     obj.ZIndex = 20
@@ -1098,7 +1096,7 @@ do
 
         timerBillboard = Instance.new("BillboardGui")
         timerBillboard.Name = "K7RagdollTimer"
-        timerBillboard.Size = UDim2.new(0, 86, 0, 26)
+        timerBillboard.Size = UDim2.new(0, 140, 0, 42)
         timerBillboard.StudsOffset = Vector3.new(0, 3.75, 0)
         timerBillboard.AlwaysOnTop = true
         timerBillboard.LightInfluence = 0
@@ -1115,7 +1113,7 @@ do
         timerLabel.Text = "3.00"
         timerLabel.TextColor3 = th.WHITE or Color3.fromRGB(245,245,245)
         timerLabel.Font = Enum.Font.GothamBold
-        timerLabel.TextSize = 18
+        timerLabel.TextSize = 28
         timerLabel.TextScaled = false
         timerLabel.TextStrokeTransparency = 0.2
         timerLabel.TextStrokeColor3 = Color3.fromRGB(0,0,0)
@@ -1147,9 +1145,9 @@ do
         
         timerActive = true
         timerBillboard.Enabled = true
-        local startTime = tick()
         local duration = 3
-        
+        updateTimerDisplay(duration, false)
+        local startTime = tick() + 0.15
         if timerConn then timerConn:Disconnect() end
         timerConn = RunService.Heartbeat:Connect(function()
             if not timerActive then 
@@ -1165,10 +1163,8 @@ do
                 if timerConn then timerConn:Disconnect(); timerConn = nil end
                 return
             end
-            
-            local elapsed = tick() - startTime
+            local elapsed = math.max(tick() - startTime, 0)
             local remaining = math.max(duration - elapsed, 0)
-            
             if remaining <= 0 then
                 timerActive = false
                 updateTimerDisplay(0, true)
@@ -1655,7 +1651,7 @@ do
         k7Ghost.Position = UDim2.new(0.5, 7, 0.5, 0)
         k7Ghost.Size = UDim2.fromScale(1.16, 1.16)
         k7Ghost.BackgroundTransparency = 1
-        k7Ghost.Image = (getK7LogoAsset() or ASSETS.K7Duels or "")
+        k7Ghost.Image = ""
         k7Ghost.ImageColor3 = RED
         k7Ghost.ImageTransparency = 0.5
         k7Ghost.ScaleType = Enum.ScaleType.Crop
@@ -1668,7 +1664,7 @@ do
         k7Image.Size = UDim2.fromScale(1.22, 1.22)
         k7Image.BackgroundColor3 = BLACK
         k7Image.BorderSizePixel = 0
-        k7Image.Image = (getK7LogoAsset() or ASSETS.K7Duels or "")
+        k7Image.Image = ""
         k7Image.ScaleType = Enum.ScaleType.Crop
         k7Image.ZIndex = 62
         k7Image.Parent = fullReveal
@@ -1686,7 +1682,7 @@ do
         k7Title.Position = UDim2.fromScale(0.5, 0.82)
         k7Title.Size = UDim2.new(0.92, 0, 0.15, 0)
         k7Title.BackgroundTransparency = 1
-        k7Title.Text = "K7 DUELS"
+        k7Title.Text = "SPIRIT HUB"
         k7Title.TextColor3 = RED_BRIGHT
         k7Title.TextTransparency = 1
         k7Title.Font = Enum.Font.GothamBlack
@@ -1746,7 +1742,7 @@ do
         loadingImage.Position = UDim2.fromScale(0.5, 0.39)
         loadingImage.Size = UDim2.fromScale(0.34, 0.34)
         loadingImage.BackgroundTransparency = 1
-        loadingImage.Image = (getK7LogoAsset() or ASSETS.K7Duels or "")
+        loadingImage.Image = ""
         loadingImage.ScaleType = Enum.ScaleType.Crop
         loadingImage.ImageTransparency = 0.08
         loadingImage.ZIndex = 101
@@ -1759,7 +1755,7 @@ do
         loadingTitle.Position = UDim2.fromScale(0.5, 0.62)
         loadingTitle.Size = UDim2.new(0.9, 0, 0.11, 0)
         loadingTitle.BackgroundTransparency = 1
-        loadingTitle.Text = "K7 DUELS"
+        loadingTitle.Text = "SPIRIT HUB"
         loadingTitle.TextColor3 = RED_BRIGHT
         loadingTitle.Font = Enum.Font.GothamBlack
         loadingTitle.TextScaled = true
@@ -1813,7 +1809,7 @@ do
         introDiscord.Position = UDim2.fromScale(0.5, 0.935)
         introDiscord.Size = UDim2.new(0.9, 0, 0.04, 0)
         introDiscord.BackgroundTransparency = 1
-        introDiscord.Text = "discord.gg/k7hub"
+        introDiscord.Text = "Spirit Hub"
         introDiscord.TextColor3 = Color3.fromRGB(180, 180, 190)
         introDiscord.TextTransparency = 0.2
         introDiscord.Font = Enum.Font.GothamBold
@@ -2480,7 +2476,7 @@ local function setupSpeedIndicator(char)
     bb.AlwaysOnTop=true;bb.MaxDistance=80;bb.Parent=head
     local discordLabel=Instance.new("TextLabel",bb)
     discordLabel.Name="DiscordLbl";discordLabel.Size=UDim2.new(1,0,0.38,0)
-    discordLabel.BackgroundTransparency=1;discordLabel.Text="discord.gg/k7hub"
+    discordLabel.BackgroundTransparency=1;discordLabel.Text="Spirit Hub"
     discordLabel.TextColor3=gray;discordLabel.Font=Enum.Font.GothamBold
     discordLabel.TextScaled=true;discordLabel.TextStrokeTransparency=0.4
     speedLabel=Instance.new("TextLabel",bb)
@@ -2776,219 +2772,6 @@ local function safeModeHoldingBrainrot()
     end
     return false
 end
-_G.AutoCarrySpeed = _G.AutoCarrySpeed or {}
-_G.AutoCarrySpeed.Enabled = autoSwitchSpeedEnabled == true
-_G.AutoCarrySpeed.carrying = false
-_G.AutoCarrySpeed.applied = false
-_G.AutoCarrySpeed.origin = nil
-_G.AutoCarrySpeed.lastSeen = 0
-_G.AutoCarrySpeed.watchUntil = 0
-_G.AutoCarrySpeed.lastCheck = 0
-_G.AutoCarrySpeed.missSince = 0
-_G.AutoCarrySpeed.confirmedHeld = false
-
-_G.AutoCarrySpeed.RefreshVisuals = function()
-    if refreshSpeedModeLabel then pcall(refreshSpeedModeLabel) end
-    if mobBtnRefs then
-        if mobBtnRefs.carrySpeed then pcall(mobBtnRefs.carrySpeed, carrySpeedActive) end
-        if mobBtnRefs.lagger then pcall(mobBtnRefs.lagger, laggerModeEnabled or laggerCarryActive) end
-        if mobBtnRefs.laggerCarry then pcall(mobBtnRefs.laggerCarry, laggerCarryActive) end
-    end
-end
-
-_G.AutoCarrySpeed.Detect = function()
-    local char = LP.Character
-    if not char then return false end
-
-    local function carryName(name)
-        local n=tostring(name or ""):lower()
-        return n:find("brainrot",1,true) or n:find("skibidi",1,true) or n:find("toilet",1,true)
-            or n:find("pet",1,true) or n:find("animal",1,true) or n:find("carry",1,true)
-            or n:find("holding",1,true) or n:find("held",1,true) or n:find("grab",1,true)
-    end
-
-    local function combatTool(name)
-        local n=tostring(name or ""):lower()
-        return n:find("bat",1,true) or n:find("slap",1,true) or n:find("medusa",1,true)
-            or n:find("sword",1,true) or n:find("gun",1,true) or n:find("grapple",1,true)
-            or n:find("coil",1,true) or n:find("boomerang",1,true) or n:find("trowel",1,true)
-            or n:find("weapon",1,true) or n:find("potion",1,true)
-    end
-
-    for _,obj in ipairs(char:GetChildren()) do
-        local n=tostring(obj.Name):lower()
-        if obj:IsA("Tool") then
-            if carryName(n) then return true end
-            if not combatTool(n) then return true end
-        elseif obj:IsA("Model") and carryName(n) then
-            return true
-        end
-    end
-
-    for _,container in ipairs({LP,char}) do
-        local ok,attrs = pcall(function() return container:GetAttributes() end)
-        if ok and type(attrs)=="table" then
-            for name,value in pairs(attrs) do
-                if carryName(name) then
-                    if value==true then return true end
-                    if type(value)=="number" and value>0 then return true end
-                    if type(value)=="string" and value~="" and value~="0" and value:lower()~="false" and value:lower()~="none" then return true end
-                end
-            end
-        end
-        for _,obj in ipairs(container:GetDescendants()) do
-            if carryName(obj.Name) then
-                if obj:IsA("BoolValue") and obj.Value then return true end
-                if obj:IsA("ObjectValue") and obj.Value~=nil then return true end
-                if obj:IsA("StringValue") and obj.Value~="" and obj.Value:lower()~="none" then return true end
-                if (obj:IsA("IntValue") or obj:IsA("NumberValue")) and obj.Value>0 then return true end
-            end
-        end
-    end
-
-
-    for _,handName in ipairs({"RightHand","LeftHand","Right Arm","Left Arm"}) do
-        local hand=char:FindFirstChild(handName)
-        if hand and hand:IsA("BasePart") then
-            local ok,parts=pcall(function() return hand:GetConnectedParts(true) end)
-            if ok and parts then
-                for _,part in ipairs(parts) do
-                    if part~=hand and not part:IsDescendantOf(char) then
-                        local otherPlayerPart=false
-                        for _,plr in ipairs(Players:GetPlayers()) do
-                            if plr~=LP and plr.Character and part:IsDescendantOf(plr.Character) then
-                                otherPlayerPart=true
-                                break
-                            end
-                        end
-                        if not otherPlayerPart then return true end
-                    end
-                end
-            end
-        end
-    end
-
-    return false
-end
-
-_G.AutoCarrySpeed.ApplyCarry = function()
-    if not autoSwitchSpeedEnabled or _G.AutoCarrySpeed.applied then return end
-    if laggerModeEnabled then
-        _G.AutoCarrySpeed.origin = "lagger"
-        laggerModeEnabled = false
-        laggerCarryActive = true
-        carrySpeedActive = false
-        _G.AutoCarrySpeed.applied = true
-    elseif not carrySpeedActive and not laggerCarryActive then
-        _G.AutoCarrySpeed.origin = "normal"
-        carrySpeedActive = true
-        laggerModeEnabled = false
-        laggerCarryActive = false
-        _G.AutoCarrySpeed.applied = true
-    else
-        _G.AutoCarrySpeed.origin = nil
-        _G.AutoCarrySpeed.applied = false
-    end
-    _G.AutoCarrySpeed.RefreshVisuals()
-end
-
-_G.AutoCarrySpeed.Restore = function()
-    if not _G.AutoCarrySpeed.applied then return end
-    if _G.AutoCarrySpeed.origin == "lagger" then
-        carrySpeedActive = false
-        laggerCarryActive = false
-        laggerModeEnabled = true
-    elseif _G.AutoCarrySpeed.origin == "normal" then
-        carrySpeedActive = false
-        laggerModeEnabled = false
-        laggerCarryActive = false
-    end
-    _G.AutoCarrySpeed.applied = false
-    _G.AutoCarrySpeed.origin = nil
-    _G.AutoCarrySpeed.RefreshVisuals()
-end
-
-_G.AutoCarrySpeed.CancelAuto = function()
-    _G.AutoCarrySpeed.applied = false
-    _G.AutoCarrySpeed.origin = nil
-end
-
-_G.AutoCarrySpeed.SetEnabled = function(on)
-    autoSwitchSpeedEnabled = on == true
-    _G.AutoCarrySpeed.Enabled = autoSwitchSpeedEnabled
-    if not autoSwitchSpeedEnabled then
-        _G.AutoCarrySpeed.Restore()
-        _G.AutoCarrySpeed.carrying = false
-        _G.AutoCarrySpeed.watchUntil = 0
-        _G.AutoCarrySpeed.missSince = 0
-        _G.AutoCarrySpeed.confirmedHeld = false
-        return
-    end
-    local carrying = _G.AutoCarrySpeed.Detect()
-    _G.AutoCarrySpeed.carrying = carrying
-    _G.AutoCarrySpeed.missSince = 0
-    _G.AutoCarrySpeed.confirmedHeld = carrying == true
-    if carrying then
-        _G.AutoCarrySpeed.lastSeen = tick()
-        _G.AutoCarrySpeed.watchUntil = 0
-        _G.AutoCarrySpeed.ApplyCarry()
-    end
-end
-
-_G.AutoCarrySpeed.WatchPickup = function(seconds)
-    if not autoSwitchSpeedEnabled then return end
-    local now=tick()
-    local grace=math.clamp(tonumber(seconds) or 1.5, 0.6, 1.75)
-    _G.AutoCarrySpeed.watchUntil=math.max(_G.AutoCarrySpeed.watchUntil or 0, now+grace)
-    _G.AutoCarrySpeed.lastSeen=now
-    _G.AutoCarrySpeed.missSince=0
-    _G.AutoCarrySpeed.confirmedHeld=false
-    _G.AutoCarrySpeed.carrying=true
-    _G.AutoCarrySpeed.ApplyCarry()
-end
-
-if _G.AutoCarrySpeed.conn then
-    pcall(function() _G.AutoCarrySpeed.conn:Disconnect() end)
-    _G.AutoCarrySpeed.conn=nil
-end
-_G.AutoCarrySpeed.conn = RunService.Heartbeat:Connect(function()
-    if not autoSwitchSpeedEnabled then return end
-    local now=tick()
-    if now-(_G.AutoCarrySpeed.lastCheck or 0)<0.08 then return end
-    _G.AutoCarrySpeed.lastCheck=now
-    local detected=_G.AutoCarrySpeed.Detect()
-    if detected then
-        _G.AutoCarrySpeed.lastSeen=now
-        _G.AutoCarrySpeed.missSince=0
-        _G.AutoCarrySpeed.carrying=true
-        _G.AutoCarrySpeed.confirmedHeld=true
-        _G.AutoCarrySpeed.watchUntil=0
-        if not _G.AutoCarrySpeed.applied then _G.AutoCarrySpeed.ApplyCarry() end
-        return
-    end
-
-    if _G.AutoCarrySpeed.carrying then
-        if not _G.AutoCarrySpeed.confirmedHeld and now < (_G.AutoCarrySpeed.watchUntil or 0) then
-            _G.AutoCarrySpeed.missSince=0
-            if not _G.AutoCarrySpeed.applied then _G.AutoCarrySpeed.ApplyCarry() end
-            return
-        end
-
-        if (_G.AutoCarrySpeed.missSince or 0)==0 then
-            _G.AutoCarrySpeed.missSince=now
-            return
-        end
-        local releaseDelay = _G.AutoCarrySpeed.confirmedHeld and 0.28 or 0.45
-        if now-(_G.AutoCarrySpeed.missSince or now)>=releaseDelay then
-            _G.AutoCarrySpeed.carrying=false
-            _G.AutoCarrySpeed.confirmedHeld=false
-            _G.AutoCarrySpeed.watchUntil=0
-            _G.AutoCarrySpeed.missSince=0
-            _G.AutoCarrySpeed.Restore()
-        end
-    end
-end)
-
 local function safeModeIsLocked()
     if not safeModeEnabled then return false end
     return safeModeInDuelCountdown() or safeModeHoldingBrainrot()
@@ -3043,7 +2826,6 @@ if not _G._SafeModeMonitorStarted_K7 then
 end
 
 
-
 KB={DropBrainrot={kb=nil,gp=nil},AutoLeft={kb=nil,gp=nil},AutoRight={kb=nil,gp=nil},AutoBat={kb=nil,gp=nil},TPBat={kb=nil,gp=nil},TPFloor={kb=nil,gp=nil},GuiHide={kb=nil,gp=nil},SpeedToggle={kb=nil,gp=nil},LaggerToggle={kb=nil,gp=nil},LaggerCarry={kb=nil,gp=nil},AntiDesync={kb=nil,gp=nil},LaggerPanel={kb=nil,gp=nil}}
 AP_L1,AP_L2=Vector3.new(-476.47,-6.28,92.73),Vector3.new(-483.12,-4.95,94.81)
 AP_R1,AP_R2=Vector3.new(-476.16,-6.52,25.62),Vector3.new(-483.06,-5.03,25.48)
@@ -3053,7 +2835,7 @@ isStealing,stealStartTime=false,nil
 Conns={autoSteal=nil,antiRag=nil,batCounter=nil,anchor={}}
 MEDUSA_COOLDOWN=25;batCounterDebounce=false
 modeValLbl=nil;lastMoveDir=Vector3.new(0,0,0)
-_lastRagExitTime=0  -- only re-apply lastMoveDir for a short window after ragdoll exit
+_lastRagExitTime=0
 MOVE_KEYS={[Enum.KeyCode.W]=true,[Enum.KeyCode.A]=true,[Enum.KeyCode.S]=true,[Enum.KeyCode.D]=true,[Enum.KeyCode.Up]=true,[Enum.KeyCode.Left]=true,[Enum.KeyCode.Down]=true,[Enum.KeyCode.Right]=true}
 local function isRagdollState(hum)
     if not hum then return true end
@@ -3614,7 +3396,7 @@ do
         V2.pauseStarted = nil
         V2.pausedDuration = 0
         local duration = math.max(tonumber(M.Steal.StealDuration) or 1.4, 0.05)
-        local pauseFraction = 0.75 -- always pause / hold bar at 75%
+        local pauseFraction = 0.75
         local finishFraction = 1 - pauseFraction
         local targetPart = prompt:FindFirstAncestorWhichIsA("BasePart")
         local restarting = false
@@ -3693,7 +3475,7 @@ do
             end
             V2.paused = true
             V2.pauseStarted = tick()
-            barSet(pauseFraction, "BRAINROT") -- hard stop display at 75%
+            barSet(pauseFraction, "BRAINROT")
             local wasAbleToGrab = false
             local waitStart = tick()
             while modeStillActive() do
@@ -3728,7 +3510,6 @@ do
                     task.wait()
                 end
                 for _, fn in ipairs(data.triggerCallbacks) do task.spawn(fn) end
-                pcall(function() if _G.AutoCarrySpeed and _G.AutoCarrySpeed.WatchPickup then _G.AutoCarrySpeed.WatchPickup(8) end end)
                 if V2.progressConn then V2.progressConn:Disconnect(); V2.progressConn = nil end
                 barSet(1, "SUCCESS")
                 task.wait(0.05)
@@ -4040,7 +3821,6 @@ do
                     if not alreadyInRange then task.wait(A.entryDelay or 0.3) end
                     if A.enabled and M.stealMode == "Semi" then
                         for _, fn in ipairs(data.triggerCallbacks) do task.spawn(function() pcall(fn) end) end
-                        pcall(function() if _G.AutoCarrySpeed and _G.AutoCarrySpeed.WatchPickup then _G.AutoCarrySpeed.WatchPickup(8) end end)
                         fired = true
                     end
                     break
@@ -4315,7 +4095,7 @@ runDrop=function(expectedToken)
     if expectedToken == nil or expectedToken ~= _dropToken then
         return
     end
-    _dropToken = 0 -- consume so it cannot chain
+    _dropToken = 0
     if dropActive then return end
     local char=LP.Character;if not char then return end
     local root=char:FindFirstChild("HumanoidRootPart");if not root then return end
@@ -4337,7 +4117,7 @@ runDrop=function(expectedToken)
         applyVel(r, Vector3.new(r.AssemblyLinearVelocity.X,DROP_ASCEND_SPEED,r.AssemblyLinearVelocity.Z))
     end)
 end
-local autoTPPaused = false  -- true while bat aimbot / tp bat is active
+local autoTPPaused = false
 local function doAutoTPDown(force)
     local char = LP.Character
     if not char then return end
@@ -4463,7 +4243,7 @@ function AdaptK7Extras.enableStretchRez()
     AdaptK7Extras.stretchRezConn=RunService.RenderStepped:Connect(function()
         if not AdaptK7Extras.stretchedResEnabled then return end
         local cam=workspace.CurrentCamera;if not cam then return end
-        local val=math.clamp(tonumber(AdaptK7Extras.stretchValue) or 0.7,0.3,1.5)
+        local val=math.clamp(tonumber(AdaptK7Extras.stretchValue) or 0.7,0.3,0.9)
         pcall(function() cam.CFrame=cam.CFrame*CFrame.new(0,0,0,1,0,0,0,val,0,0,0,1) end)
     end)
 end
@@ -5431,6 +5211,7 @@ startTPBat=function()
     pcall(cleanupPredBall)
 
     local hittingCooldown = false
+    local fixedTarget = nil
 
     local function getTPBat()
         local char = LP.Character
@@ -5468,7 +5249,8 @@ startTPBat=function()
         for _, plr in pairs(Players:GetPlayers()) do
             if plr ~= LP and plr.Character then
                 local targetRoot = plr.Character:FindFirstChild("HumanoidRootPart")
-                if targetRoot then
+                local targetHum = plr.Character:FindFirstChildOfClass("Humanoid")
+                if targetRoot and targetHum and targetHum.Health > 0 then
                     local distance = (root.Position - targetRoot.Position).Magnitude
                     if distance < closestDistance then
                         closestDistance = distance
@@ -5480,6 +5262,18 @@ startTPBat=function()
         return closest, closestDistance
     end
 
+    local function getFixedTPPlayer(root)
+        if fixedTarget and fixedTarget.Parent == Players and fixedTarget.Character then
+            local targetRoot = fixedTarget.Character:FindFirstChild("HumanoidRootPart")
+            local targetHum = fixedTarget.Character:FindFirstChildOfClass("Humanoid")
+            if targetRoot and targetHum and targetHum.Health > 0 then
+                return fixedTarget
+            end
+        end
+        fixedTarget = select(1, getClosestTPPlayer(root))
+        return fixedTarget
+    end
+
     tpBatConn = RunService.Heartbeat:Connect(function()
         if not tpBatEnabled then return end
         local char = LP.Character
@@ -5488,17 +5282,18 @@ startTPBat=function()
         local root = char:FindFirstChild("HumanoidRootPart")
         if not hum or not root then return end
 
-        local target = select(1, getClosestTPPlayer(root))
+        local target = getFixedTPPlayer(root)
         if target and target.Character then
             local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
             if targetRoot then
                 if sethiddenproperty then
                     pcall(function() sethiddenproperty(root, "PhysicsRepRootPart", targetRoot) end)
                 end
-                local targetPos = targetRoot.Position + Vector3.new(0, 0.9, 0)
-                if (root.Position - targetPos).Magnitude > 8 then
-                    root.CFrame = CFrame.new(targetPos)
-                end
+
+                -- TP FIXED: fica preso ao mesmo alvo e acompanha ele continuamente.
+                local fixedOffset = CFrame.new(0, 0.9, 0)
+                root.CFrame = targetRoot.CFrame * fixedOffset
+
                 local cam = workspace.CurrentCamera
                 if cam then
                     cam.CFrame = CFrame.new(cam.CFrame.Position, targetRoot.Position)
@@ -5531,8 +5326,6 @@ stopTPBat=function()
         if mobBtnRefs and mobBtnRefs.tpBat then mobBtnRefs.tpBat(false) end
     end)
 end
-
-
 
 
 resetAutoBatMotion=function()
@@ -5571,7 +5364,7 @@ saveConfig=function()
             infiniteJump=infJumpEnabled==true, infJumpMode=infJumpMode,
             medusaCounter=medusaCounterEnabled==true, batCounter=batCounterEnabled==true,
             carrySpeedActive=carrySpeedActive==true, laggerModeEnabled=laggerModeEnabled==true,
-            laggerCarryActive=laggerCarryActive==true, autoCarrySpeed=autoSwitchSpeedEnabled==true,
+            laggerCarryActive=laggerCarryActive==true,
             laggerSpeed=LAGGER_SPEED, laggerCarrySpeed=LAGGER_CARRY_SPEED,
             autoBat=autoBatEnabled==true, tpBat=tpBatEnabled==true, aimbotMode=aimbotMode,
 
@@ -5585,7 +5378,7 @@ saveConfig=function()
             guiTransparencyEnabled=guiTransparencyEnabled==true,
             mobileButtonsEnabled=mobileButtonsEnabled==true, mobileButtonsLocked=mobileButtonsLocked==true,
             uiLocked=uiLocked==true,
-            mobileButtonsSize=mobileButtonsSize, circleButtonsEnabled=circleButtonsEnabled==true,
+            mobileButtonsSize=mobileButtonsSize, hubSizeScale=hubSizeScale, circleButtonsEnabled=circleButtonsEnabled==true,
             antiKick=antiKickEnabled==true, safeMode=safeModeEnabled==true, fovValue=fovValue, perButtonDrag=true,
             stretchedResEnabled=AdaptK7Extras.stretchedResEnabled==true, stretchValue=AdaptK7Extras.stretchValue,
             removeAccessories=AdaptK7Extras.removeAccessories==true,
@@ -5615,16 +5408,14 @@ saveConfig=function()
 end
 task.spawn(function() while task.wait(5) do saveConfig() end end)
 local function resetAllSettings()
-    if _G.AutoCarrySpeed and _G.AutoCarrySpeed.CancelAuto then pcall(_G.AutoCarrySpeed.CancelAuto) end
-    NS=60;CS=30;LAGGER_SPEED=15;LAGGER_CARRY_SPEED=24.5;carrySpeedActive=false;laggerModeEnabled=false;laggerCarryActive=false;autoSwitchSpeedEnabled=false
-    if _G.AutoCarrySpeed then _G.AutoCarrySpeed.Enabled=false;_G.AutoCarrySpeed.carrying=false;_G.AutoCarrySpeed.watchUntil=0 end
+    NS=60;CS=30;LAGGER_SPEED=15;LAGGER_CARRY_SPEED=24.5;carrySpeedActive=false;laggerModeEnabled=false;laggerCarryActive=false
     antiRagdollEnabled=false;AdaptK7Extras.antiRagdollMode="Splatter";AdaptK7Extras.hardHitEnabled=false;AdaptK7Extras.hardHitRadius=10;infJumpEnabled=false;infJumpMode="manual"
     antiFlingEnabled=true;AdaptK7Extras.antiDieEnabled=false;AdaptK7Extras.stretchedResEnabled=false;AdaptK7Extras.stretchValue=0.7;AdaptK7Extras.removeAccessories=false
     medusaCounterEnabled=false;batCounterEnabled=false;unwalkEnabled=false
     autoLeftEnabled=false;autoRightEnabled=false;autoBatEnabled=false;autoSwingEnabled=true;autoMoveSwingEnabled=false
     autoTPEnabled=false;autoTPHeight=30;mirrorTPDownEnabled=false;antiLagEnabled=false
     Steal.AutoStealEnabled=false;Steal.StealRadius=60;Steal.StealDuration=1.4;Steal.StealMode="v2";Steal.StealRange=10;Steal.SemiHoldMin=1.3;Steal.HoldMax=2.6;Steal.EntryDelay=0.3
-    guiTransparencyEnabled=false;mobileButtonsEnabled=true;mobileButtonsSize=80
+    guiTransparencyEnabled=false;mobileButtonsEnabled=true;mobileButtonsLocked=false;mobileButtonsSize=80;hubSizeScale=1
     circleButtonsEnabled=false;antiKickEnabled=false;uiLocked=false;fovValue=80;fovIndex=1
     KB.DropBrainrot={kb=nil,gp=nil};KB.AutoLeft={kb=nil,gp=nil};KB.AutoRight={kb=nil,gp=nil}
     KB.AutoBat={kb=nil,gp=nil};KB.TPBat={kb=nil,gp=nil};KB.TPFloor={kb=nil,gp=nil}
@@ -5633,7 +5424,6 @@ local function resetAllSettings()
     if refreshSpeedModeLabel then refreshSpeedModeLabel() end
     if mobBtnRefs.carrySpeed then mobBtnRefs.carrySpeed(carrySpeedActive) end
     if mobBtnRefs.lagger then mobBtnRefs.lagger(laggerModeEnabled or laggerCarryActive) end
-    if setAutoCarrySpeedVisual then setAutoCarrySpeedVisual(false) end
     if mobBtnRefs.autoLeft then mobBtnRefs.autoLeft(false) end
     if mobBtnRefs.autoRight then mobBtnRefs.autoRight(false) end
     if mobBtnRefs.autoBat then mobBtnRefs.autoBat(false) end
@@ -5643,7 +5433,6 @@ local function resetAllSettings()
 end
 setInstaGrab,setInfJumpVisual,setAntiRagVisual,setMedusaVisual,setUnwalkVisual,setAntiLagVisual,setAutoSwingVisual=nil,nil,nil,nil,nil,nil,nil
 setAntiDieVisual,setAntiFlingVisual,setStretchRezVisual,setRemoveAccessoriesVisual=nil,nil,nil,nil
-setAutoCarrySpeedVisual=nil
 setHardHitVisual=nil;hardHitRangeBox=nil;semiRadiusBox=nil;semiHoldMinBox=nil;semiHoldMaxBox=nil
 setTranspVisual,setLockVisual,setMobVisual,setCircleBtnsVisual=nil,nil,nil,nil
 normalBox,carryBox,laggerBox,laggerCarryBox,radInput,autoTPHeightBox,durationBox=nil,nil,nil,nil,nil,nil,nil
@@ -5674,7 +5463,6 @@ refreshSpeedModeLabel=function()
     end
 end
 toggleCarryMode=function()
-    if _G.AutoCarrySpeed and _G.AutoCarrySpeed.CancelAuto then pcall(_G.AutoCarrySpeed.CancelAuto) end
     carrySpeedActive = not carrySpeedActive
     if carrySpeedActive then
         laggerModeEnabled = false
@@ -5685,7 +5473,6 @@ toggleCarryMode=function()
     if mobBtnRefs.lagger then mobBtnRefs.lagger(laggerModeEnabled or laggerCarryActive) end
 end
 toggleLaggerMode=function()
-    if _G.AutoCarrySpeed and _G.AutoCarrySpeed.CancelAuto then pcall(_G.AutoCarrySpeed.CancelAuto) end
     carrySpeedActive = false
     if laggerCarryActive then
         laggerCarryActive = false
@@ -5699,7 +5486,6 @@ toggleLaggerMode=function()
     if mobBtnRefs.lagger then mobBtnRefs.lagger(true) end
 end
 toggleLaggerCarryMode=function()
-    if _G.AutoCarrySpeed and _G.AutoCarrySpeed.CancelAuto then pcall(_G.AutoCarrySpeed.CancelAuto) end
     laggerCarryActive = not laggerCarryActive
     if laggerCarryActive then
         carrySpeedActive = false
@@ -5715,7 +5501,7 @@ LP.CharacterAdded:Connect(function(char)
     task.defer(function()
         local hum = char:FindFirstChildOfClass("Humanoid") or char:WaitForChild("Humanoid", 5)
         if not hum then return end
-        if tpBatEnabled then return end -- TP bat anti-die owns state while active
+        if tpBatEnabled then return end
         pcall(function()
             hum.BreakJointsOnDeath = true
             hum.RequiresNeck = true
@@ -5795,7 +5581,7 @@ local function forceExitRagdoll()
     local root = antiRagdollCached.root
 
     if not hum or not root then return end
-    if hum.Health <= 0 then return end   -- don't touch camera on dead humanoid
+    if hum.Health <= 0 then return end
 
     pcall(function()
         LP:SetAttribute("RagdollEndTime", workspace:GetServerTimeNow())
@@ -5923,8 +5709,6 @@ end
 stopUnwalk=function() local c=LP.Character;if c and unwalkSavedAnimate then unwalkSavedAnimate:Clone().Parent=c;unwalkSavedAnimate=nil end end
 
 
-
-
 local ANTI_FLING_MAX_LIN = 160
 local ANTI_FLING_MAX_ANG = 45
 local _antiFlingConn = nil
@@ -6037,7 +5821,7 @@ playerBoxesEnabled = playerBoxesEnabled or false
 playerTracersEnabled = playerTracersEnabled or false
 local _espFolder = nil
 local _espConn = nil
-local _espObjects = {} -- [player] = { billboard, drawBox, drawLine, beam, attachments }
+local _espObjects = {}
 
 local function getEspThemeColor()
     local th = (type(getTheme)=="function" and getTheme()) or nil
@@ -6071,7 +5855,7 @@ local function ensureEspFolder()
     return f
 end
 
-local _k7Users = {} -- [userId] = true
+local _k7Users = {}
 local K7_ZOOM_MAX = 127.89134
 local K7_ZOOM_MIN = 0.41278
 local K7_NAME_DIST = 101.337
@@ -6083,7 +5867,7 @@ local function markK7UserId(uid)
 end
 
 local K7_PRESENCE_URL = "https://jsonblob.com/api/jsonBlob/019fd958-1bb9-79ea-ac53-d695c6d450e6"
-local K7_PRESENCE_TTL = 25 -- seconds; stale entries ignored
+local K7_PRESENCE_TTL = 25
 local _presenceLastPush = 0
 local _presenceBusy = false
 
@@ -6124,7 +5908,7 @@ local function _presenceDecode(raw)
 end
 
 local function presencePush()
-    do return end -- disabled: external HTTP presence can flag PC clients
+    do return end
     if _presenceBusy then return end
     _presenceBusy = true
     pcall(function()
@@ -6159,7 +5943,7 @@ local function presencePush()
 end
 
 local function presencePull()
-    do return end -- disabled: external HTTP presence can flag PC clients
+    do return end
     pcall(function()
         local jobId = tostring(game.JobId or "unknown")
         local now = os.time()
@@ -6307,7 +6091,7 @@ local function updateK7Tags()
                     local lbl = Instance.new("TextLabel", bb)
                     lbl.Size = UDim2.new(1, 0, 1, 0)
                     lbl.BackgroundTransparency = 1
-                    lbl.Text = "USING K7"
+                    lbl.Text = "USING SPIRIT HUB"
                     lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
                     lbl.Font = Enum.Font.GothamBlack
                     lbl.TextSize = 18
@@ -6342,7 +6126,7 @@ task.spawn(function()
         RunService.Heartbeat:Wait()
         pcall(applyK7Fingerprint)
         acc = acc + 1
-        if acc >= 30 then -- ~0.5s at 60fps
+        if acc >= 30 then
             acc = 0
             for _, plr in ipairs(Players:GetPlayers()) do
                 if plr ~= LP then
@@ -6431,8 +6215,26 @@ local function updatePlayerEsp(plr)
             lbl.Text = "Speed: " .. tostring(math.floor(speed + 0.5))
             lbl.TextColor3 = color
         end
+
+        local cam = workspace.CurrentCamera
+        if cam then
+            local vp, onScreen = cam:WorldToViewportPoint(hrp.Position)
+            local view = cam.ViewportSize
+            local inside = onScreen and vp.Z > 0 and vp.X >= 0 and vp.X <= view.X and vp.Y >= 0 and vp.Y <= view.Y
+
+            if o.billboard then
+                o.billboard.Enabled = inside
+            end
+
+            if o.offscreenGui then
+                pcall(function() o.offscreenGui:Destroy() end)
+                o.offscreenGui = nil
+                o.offscreenLabel = nil
+            end
+        end
     else
         if o.billboard then pcall(function() o.billboard:Destroy() end); o.billboard = nil end
+        if o.offscreenGui then pcall(function() o.offscreenGui:Destroy() end); o.offscreenGui = nil; o.offscreenLabel = nil end
         if o.highlight then pcall(function() o.highlight:Destroy() end); o.highlight = nil end
     end
 
@@ -6536,13 +6338,28 @@ local function updatePlayerEsp(plr)
                         local p, on = cam:WorldToViewportPoint(hrp.Position)
                         return p, on
                     end)
-                    if ok1 and ok2 and p1 and p2 then
-                        local visible = (v1 ~= false) and (v2 ~= false) and p1.Z > 0 and p2.Z > 0
-                        o.drawLine.From = Vector2.new(p1.X, p1.Y)
-                        o.drawLine.To = Vector2.new(p2.X, p2.Y)
+                    if ok1 and ok2 and p1 and p2 and cam then
+                        local view = cam.ViewportSize
+                        local tx, ty = p2.X, p2.Y
+                        if p2.Z <= 0 then
+                            tx = view.X - tx
+                            ty = view.Y - ty
+                        end
+                        tx = math.clamp(tx, 8, math.max(8, view.X - 8))
+                        ty = math.clamp(ty, 8, math.max(8, view.Y - 8))
+
+                        local fromX = math.clamp(p1.X, 0, view.X)
+                        local fromY = math.clamp(p1.Y, 0, view.Y)
+                        if p1.Z <= 0 or v1 == false then
+                            fromX = view.X * 0.5
+                            fromY = view.Y - 18
+                        end
+
+                        o.drawLine.From = Vector2.new(fromX, fromY)
+                        o.drawLine.To = Vector2.new(tx, ty)
                         o.drawLine.Color = tColor
                         o.drawLine.Thickness = 4
-                        o.drawLine.Visible = visible
+                        o.drawLine.Visible = true
                     else
                         o.drawLine.Visible = false
                     end
@@ -6720,6 +6537,7 @@ local function createStealBar()
     else
         barGui.Parent = LP:FindFirstChild("PlayerGui") or game:GetService("CoreGui")
     end
+    stealBarGuiRef = barGui
 
     local pbFrame = Instance.new("Frame", barGui)
     pbFrame.Name = "StealProgressBar"
@@ -6812,7 +6630,7 @@ local function createStealBar()
     progressRadLbl.Size = UDim2.new(0, 90, 0, 14)
     progressRadLbl.Position = UDim2.new(1, -100, 0, 4)
     progressRadLbl.BackgroundTransparency = 1
-    progressRadLbl.Text = "Radius: " .. tostring(Steal.StealRadius)
+    progressRadLbl.Text = "Radius: " .. tostring(((Steal.StealMode or "normal") == "semi") and (Steal.StealRange or 10) or (Steal.StealRadius or 60))
     progressRadLbl.TextColor3 = C_TEXT_DIM
     progressRadLbl.Font = Enum.Font.GothamBold
     progressRadLbl.TextSize = 10
@@ -6870,7 +6688,7 @@ local function createStealBar()
             Steal.promptCacheTime = 0
         end
         radTB.Text = tostring(Steal.StealRadius)
-        progressRadLbl.Text = "Radius: " .. tostring(Steal.StealRadius)
+        progressRadLbl.Text = "Radius: " .. tostring(((Steal.StealMode or "normal") == "semi") and (Steal.StealRange or 10) or (Steal.StealRadius or 60))
         if stealRadBox and not stealRadBox:IsFocused() then
             stealRadBox.Text = tostring(Steal.StealRadius)
         end
@@ -6880,7 +6698,7 @@ local function createStealBar()
         while barGui.Parent do
             task.wait(0.25)
             pcall(function()
-                progressRadLbl.Text = "Radius: " .. tostring(Steal.StealRadius)
+                progressRadLbl.Text = "Radius: " .. tostring(((Steal.StealMode or "normal") == "semi") and (Steal.StealRange or 10) or (Steal.StealRadius or 60))
                 radTB.Text = tostring(Steal.StealRadius)
                 if stealRadBox and not stealRadBox:IsFocused() then
                     stealRadBox.Text = tostring(Steal.StealRadius)
@@ -6905,7 +6723,7 @@ local function createStealBar()
 end
 
 local function destroyMobileButtons()
-    pcall(saveBtnPositions) -- persist before destroy
+    pcall(saveBtnPositions)
     if mobGuiRef then pcall(function() mobGuiRef:Destroy() end);mobGuiRef=nil end
     for _,n in ipairs({"K7MobileButtons"}) do
         local old=game:GetService("CoreGui"):FindFirstChild(n);if old then old:Destroy() end
@@ -6915,7 +6733,7 @@ local function destroyMobileButtons()
 end
 local function buildMobileButtons()
     destroyMobileButtons();if not mobileButtonsEnabled then return end
-    perButtonDragEnabled=true -- always drag each button independently
+    perButtonDragEnabled=true
     local savedPositions=loadBtnPositions()
 
     local BTN_SIZE=math.floor(mobileButtonsSize*0.55)
@@ -6977,7 +6795,7 @@ local function buildMobileButtons()
 
         local gDragStart,gDragStartPos,gDragDown=nil,nil,false
         panel.InputBegan:Connect(function(input)
-            if uiLocked then return end
+            if uiLocked or mobileButtonsLocked then return end
             if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
                 gDragDown=true;gDragStart=input.Position;gDragStartPos=panel.Position
                 input.Changed:Connect(function()
@@ -6993,7 +6811,7 @@ local function buildMobileButtons()
             end
         end)
         UIS.InputChanged:Connect(function(input)
-            if gDragDown and not uiLocked and (input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch) then
+            if gDragDown and not uiLocked and not mobileButtonsLocked and (input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch) then
                 local delta=input.Position-gDragStart
                 panel.Position=UDim2.new(0,gDragStartPos.X.Offset+delta.X,0,gDragStartPos.Y.Offset+delta.Y)
             end
@@ -7070,8 +6888,8 @@ local function buildMobileButtons()
 
         local dragStart2,dragStartPos2,dragMoved,dragDown=nil,nil,false,false
         btn.InputBegan:Connect(function(input)
-            if uiLocked then return end
-            if activeMobDrag and activeMobDrag~=frame then return end -- another button is already dragging
+            if uiLocked or mobileButtonsLocked then return end
+            if activeMobDrag and activeMobDrag~=frame then return end
             if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
                 dragMoved=false
                 dragDown=true
@@ -7081,7 +6899,7 @@ local function buildMobileButtons()
             end
         end)
         UIS.InputChanged:Connect(function(input)
-            if not dragDown or uiLocked or activeMobDrag~=frame then return end
+            if not dragDown or uiLocked or mobileButtonsLocked or activeMobDrag~=frame then return end
             if input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch then
                 local delta=input.Position-dragStart2
                 if delta.Magnitude>18 then dragMoved=true end
@@ -7202,8 +7020,11 @@ local function buildGui()
     mainGuiRef = gui
 
     local IS_MOBILE = UIS.TouchEnabled and not UIS.KeyboardEnabled
-    local W = IS_MOBILE and 290 or 320
-    local H = IS_MOBILE and 470 or 480
+    local BASE_W = IS_MOBILE and 290 or 320
+    local BASE_H = IS_MOBILE and 470 or 480
+    hubSizeScale = math.clamp(tonumber(hubSizeScale) or 1,1,1.25)
+    local W = math.floor(BASE_W * hubSizeScale)
+    local H = math.floor(BASE_H * hubSizeScale)
     local HEADER_H = 50
 
     local shadow = Instance.new("Frame", gui)
@@ -7318,7 +7139,7 @@ local function buildGui()
     subLbl.Size = UDim2.new(0,120,0,12)
     subLbl.Position = UDim2.new(0,14,0,27)
     subLbl.BackgroundTransparency = 1
-    subLbl.Text = "HUB · K7 ENGINE"
+    subLbl.Text = "SPIRIT HUB"
     subLbl.TextColor3 = C_TEXT_MUTE
     subLbl.Font = Enum.Font.GothamBold
     subLbl.TextSize = 8
@@ -7327,7 +7148,7 @@ local function buildGui()
 
     local themeBtn = Instance.new("TextButton", header)
     themeBtn.Size = UDim2.new(0,56,0,22)
-    themeBtn.Position = UDim2.new(1,-100,0.5,-11)
+    themeBtn.Position = UDim2.new(1,-132,0.5,-11)
     themeBtn.BackgroundColor3 = C_PANEL
     themeBtn.BorderSizePixel = 0
     themeBtn.Text = ({Obsidian="Mono",Crimson="Crimson",Azure="Azure",Violet="Rose"})[currentGuiTheme] or "Mono"
@@ -7384,36 +7205,138 @@ local function buildGui()
         return b
     end
 
+    local sizeBtn = makeHeaderBtn(hubSizeScale > 1 and "−" or "+",64,16)
     local minBtn = makeHeaderBtn("—",36,13)
     local closeBtn = makeHeaderBtn("×",8,16)
-    makeDraggable(mainFrame,{shadow},header)
 
-    local scroll = Instance.new("ScrollingFrame",mainFrame)
-    scroll.Size = UDim2.new(1,0,1,-HEADER_H)
-    scroll.Position = UDim2.new(0,0,0,HEADER_H)
-    scroll.BackgroundTransparency = 1
-    scroll.BorderSizePixel = 0
-    scroll.ScrollBarThickness = 2
-    scroll.ScrollBarImageColor3 = ACCENT
-    scroll.ScrollBarImageTransparency = 0.5
-    scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    scroll.CanvasSize = UDim2.new(0,0,0,0)
-    scroll.ZIndex = 4
-    if _adaptRestoreScroll then
-        task.defer(function()
-            if scroll and scroll.Parent then scroll.CanvasPosition = _adaptRestoreScroll end
-        end)
+    local function applyHubSizeScale(newScale)
+        newScale=math.clamp(tonumber(newScale) or 1,1,1.25)
+        local oldW=mainFrame.Size.X.Offset
+        local oldH=mainFrame.Size.Y.Offset
+        local newW=math.floor(BASE_W*newScale)
+        local newH=math.floor(BASE_H*newScale)
+        local pos=mainFrame.Position
+
+        local centerOffsetX=pos.X.Offset+(oldW/2)
+        local centerOffsetY=pos.Y.Offset+(oldH/2)
+
+        hubSizeScale=newScale
+        mainFrame.Size=UDim2.new(0,newW,0,newH)
+        mainFrame.Position=UDim2.new(
+            pos.X.Scale,centerOffsetX-(newW/2),
+            pos.Y.Scale,centerOffsetY-(newH/2)
+        )
+        shadow.Size=UDim2.new(0,newW+8,0,newH+8)
+        syncShadow()
+        sizeBtn.Text=hubSizeScale>1 and "−" or "+"
     end
 
-    local layout = Instance.new("UIListLayout",scroll)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0,3)
+    sizeBtn.Activated:Connect(function()
+        applyHubSizeScale(hubSizeScale>1 and 1 or 1.25)
+        saveConfig()
+    end)
 
-    local pad = Instance.new("UIPadding",scroll)
-    pad.PaddingLeft = UDim.new(0,12)
-    pad.PaddingRight = UDim.new(0,12)
-    pad.PaddingTop = UDim.new(0,12)
-    pad.PaddingBottom = UDim.new(0,16)
+    makeDraggable(mainFrame,{shadow},header)
+
+    -- Tabs: apenas reorganiza a GUI; nenhuma logica das funcoes foi alterada.
+    local TAB_H = 34
+    local tabBar = Instance.new("Frame",mainFrame)
+    tabBar.Size = UDim2.new(1,0,0,TAB_H)
+    tabBar.Position = UDim2.new(0,0,0,HEADER_H)
+    tabBar.BackgroundColor3 = C_PANEL
+    tabBar.BorderSizePixel = 0
+    tabBar.ZIndex = 5
+
+    local tabPad = Instance.new("UIPadding",tabBar)
+    tabPad.PaddingLeft = UDim.new(0,8)
+    tabPad.PaddingRight = UDim.new(0,8)
+    tabPad.PaddingTop = UDim.new(0,5)
+    tabPad.PaddingBottom = UDim.new(0,5)
+
+    local tabLayout = Instance.new("UIListLayout",tabBar)
+    tabLayout.FillDirection = Enum.FillDirection.Horizontal
+    tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    tabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    tabLayout.Padding = UDim.new(0,4)
+
+    local pages = {}
+    local tabButtons = {}
+    local function createPage(name)
+        local page = Instance.new("ScrollingFrame",mainFrame)
+        page.Name = name .. "Page"
+        page.Size = UDim2.new(1,0,1,-HEADER_H-TAB_H)
+        page.Position = UDim2.new(0,0,0,HEADER_H+TAB_H)
+        page.BackgroundTransparency = 1
+        page.BorderSizePixel = 0
+        page.ScrollBarThickness = 2
+        page.ScrollBarImageColor3 = ACCENT
+        page.ScrollBarImageTransparency = 0.5
+        page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        page.CanvasSize = UDim2.new(0,0,0,0)
+        page.ZIndex = 4
+        page.Visible = false
+
+        local pageLayout = Instance.new("UIListLayout",page)
+        pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        pageLayout.Padding = UDim.new(0,3)
+
+        local pagePad = Instance.new("UIPadding",page)
+        pagePad.PaddingLeft = UDim.new(0,12)
+        pagePad.PaddingRight = UDim.new(0,12)
+        pagePad.PaddingTop = UDim.new(0,12)
+        pagePad.PaddingBottom = UDim.new(0,16)
+
+        pages[name] = page
+        return page
+    end
+
+    local movementPage = createPage("Moviment")
+    local combatPage = createPage("Combat")
+    local visualPage = createPage("Visual")
+    local settingsPage = createPage("Settings")
+    local scroll = movementPage
+
+    local function selectTab(name)
+        for pageName,page in pairs(pages) do
+            page.Visible = pageName == name
+        end
+        for tabName,btn in pairs(tabButtons) do
+            local active = tabName == name
+            btn.TextColor3 = active and C_BG or C_TEXT_DIM
+            btn.BackgroundColor3 = active and ACCENT or C_PANEL_2
+        end
+    end
+
+    local tabNames = {"Moviment","Combat","Visual","Settings"}
+    for i,name in ipairs(tabNames) do
+        local b = Instance.new("TextButton",tabBar)
+        b.Name = name .. "Tab"
+        b.Size = UDim2.new(0.25,-7,1,0)
+        b.BackgroundColor3 = C_PANEL_2
+        b.BorderSizePixel = 0
+        b.Text = name
+        b.TextColor3 = C_TEXT_DIM
+        b.Font = Enum.Font.GothamBold
+        b.TextSize = IS_MOBILE and 9 or 10
+        b.AutoButtonColor = false
+        b.LayoutOrder = i
+        b.ZIndex = 7
+        Instance.new("UICorner",b).CornerRadius = UDim.new(0,6)
+        local bs = Instance.new("UIStroke",b)
+        bs.Color = C_BORDER
+        bs.Thickness = 1
+        bs.Transparency = 0.35
+        tabButtons[name] = b
+        b.Activated:Connect(function() selectTab(name) end)
+    end
+
+    selectTab("Moviment")
+    if _adaptRestoreScroll then
+        task.defer(function()
+            if movementPage and movementPage.Parent then movementPage.CanvasPosition = _adaptRestoreScroll end
+        end)
+    end
 
     local order = 0
     local function LO() order += 1 return order end
@@ -7725,6 +7648,7 @@ local function buildGui()
         return btn
     end
 
+    scroll = settingsPage
     makeSectionLabel("Theme")
     do
         local row = Instance.new("Frame",scroll)
@@ -7764,20 +7688,18 @@ local function buildGui()
     end
     makeGap(6)
 
+    scroll = movementPage
     makeSectionLabel("Speed")
     normalBox = makeInputRow("Normal Speed",NS,function(v) if v>0 and v<=500 then NS=v;saveConfig() end end)
     carryBox = makeInputRow("Carry Speed",CS,function(v) if v>0 and v<=500 then CS=v;saveConfig() end end)
     laggerBox = makeInputRow("Lagger Speed",LAGGER_SPEED,function(v) if v>0 and v<=500 then LAGGER_SPEED=v;saveConfig() end end)
     laggerCarryBox = makeInputRow("Lagger Carry",LAGGER_CARRY_SPEED,function(v) if v>0 and v<=500 then LAGGER_CARRY_SPEED=v;saveConfig() end end)
-    setAutoCarrySpeedVisual = makeToggleRow("Auto Carry Speed",autoSwitchSpeedEnabled,function(on)
-        if _G.AutoCarrySpeed and _G.AutoCarrySpeed.SetEnabled then pcall(_G.AutoCarrySpeed.SetEnabled,on) else autoSwitchSpeedEnabled=on==true end
-        saveConfig()
-    end)
 
     modeValLbl = makeStatusRow("Current Mode","Normal")
     pcall(refreshSpeedModeLabel)
     makeGap(8)
 
+    scroll = combatPage
     makeSectionLabel("Combat")
     makeSelectorRow("Aimbot Mode",{"Normal","Bypass"},aimbotMode=="bypass" and "Bypass" or "Normal",function(opt)
         aimbotMode = opt=="Bypass" and "bypass" or "normal"
@@ -7868,7 +7790,8 @@ local function buildGui()
     end)
     makeGap(8)
 
-    makeSectionLabel("Auto / Steal")
+    scroll = movementPage
+    makeSectionLabel("Utility")
     setAutoTPVisual = makeToggleRow("Auto TP",autoTPEnabled,function(on)
         autoTPEnabled=on
         if on then startAutoTP() else stopAutoTP() end
@@ -7883,10 +7806,40 @@ local function buildGui()
         setMirrorTPDown(on);saveConfig()
     end)
     autoTPHeightBox = makeInputRow("TP Height",autoTPHeight,function(v) if v>=0 and v<=500 then autoTPHeight=v;saveConfig() end end)
+    makeGap(8)
+
+    scroll = combatPage
+    makeSectionLabel("Steal")
+    local function updateSemiOptionsVisibility()
+        local showSemi = Steal.StealMode == "semi"
+
+        local semiBoxes = {semiRadiusBox,semiHoldMinBox,semiHoldMaxBox}
+        for _,box in ipairs(semiBoxes) do
+            if box and box.Parent then
+                box.Parent.Visible = showSemi
+            end
+        end
+
+        local normalBoxes = {radInput,durationBox}
+        for _,box in ipairs(normalBoxes) do
+            if box and box.Parent then
+                box.Parent.Visible = not showSemi
+            end
+        end
+    end
 
     setInstaGrab = makeToggleRow("Auto Steal",Steal.AutoStealEnabled,function(on)
         Steal.AutoStealEnabled=on
         if on then startAutoSteal() else stopAutoSteal() end
+        saveConfig()
+    end)
+    makeSelectorRow("Steal Mode",{"Normal","Semi","Normal V2"},(Steal.StealMode=="semi") and "Semi" or ((Steal.StealMode=="normal") and "Normal" or "Normal V2"),function(opt)
+        local wasOn=Steal.AutoStealEnabled
+        if wasOn then stopAutoSteal() end
+        Steal.StealMode=(opt=="Semi") and "semi" or ((opt=="Normal") and "normal" or "v2")
+        if Steal.StealMode=="semi" then Steal.StealRange=math.min(Steal.StealRange or 10,10) end
+        updateSemiOptionsVisibility()
+        if wasOn then Steal.AutoStealEnabled=true;startAutoSteal() end
         saveConfig()
     end)
     radInput = makeInputRow("Steal Radius",Steal.StealRadius,function(v)
@@ -7894,14 +7847,6 @@ local function buildGui()
     end)
     durationBox = makeInputRow("Steal Duration",Steal.StealDuration,function(v,box)
         if v>=0.1 and v<=10 then Steal.StealDuration=v;saveConfig() else box.Text=tostring(Steal.StealDuration) end
-    end)
-    makeSelectorRow("Steal Mode",{"Normal","Semi","Normal V2"},(Steal.StealMode=="semi") and "Semi" or ((Steal.StealMode=="normal") and "Normal" or "Normal V2"),function(opt)
-        local wasOn=Steal.AutoStealEnabled
-        if wasOn then stopAutoSteal() end
-        Steal.StealMode=(opt=="Semi") and "semi" or ((opt=="Normal") and "normal" or "v2")
-        if Steal.StealMode=="semi" then Steal.StealRange=math.min(Steal.StealRange or 10,10) end
-        if wasOn then Steal.AutoStealEnabled=true;startAutoSteal() end
-        saveConfig()
     end)
     semiRadiusBox = makeInputRow("Semi Radius",Steal.StealRange or 10,function(v,box)
         if v>=0.5 and v<=10 then Steal.StealRange=v else box.Text=tostring(Steal.StealRange or 10) end
@@ -7918,7 +7863,11 @@ local function buildGui()
         if AdaptK7Extras.ZeySteal and AdaptK7Extras.ZeySteal.Semi then AdaptK7Extras.ZeySteal.Semi.holdMax=Steal.HoldMax end
         saveConfig()
     end)
+    updateSemiOptionsVisibility()
+    makeGap(8)
 
+    scroll = movementPage
+    makeSectionLabel("Movement / Actions")
     autoLeftSetVisual = makeToggleRow("Auto Left",autoLeftEnabled,function(on)
         autoLeftEnabled=on
         if on then
@@ -7949,6 +7898,7 @@ local function buildGui()
     makeActionRow("TP Down","TP",function() runTPFloor() end)
     makeGap(8)
 
+    scroll = visualPage
     makeSectionLabel("Visual")
     setAntiLagVisual = makeToggleRow("Anti Lag",antiLagEnabled,function(on)
         if on then enableAntiLag() else disableAntiLag() end
@@ -7986,7 +7936,7 @@ local function buildGui()
     makeInputRow("Stretch Value",AdaptK7Extras.stretchValue,function(v,box)
         local n=tonumber(v)
         if n then
-            AdaptK7Extras.stretchValue=math.clamp(n,0.3,1.5)
+            AdaptK7Extras.stretchValue=math.clamp(n,0.3,0.9)
             box.Text=tostring(AdaptK7Extras.stretchValue)
             if AdaptK7Extras.stretchedResEnabled then AdaptK7Extras.disableStretchRez();AdaptK7Extras.enableStretchRez() end
             saveConfig()
@@ -7996,10 +7946,21 @@ local function buildGui()
         if on then AdaptK7Extras.startRemoveAccessories() else AdaptK7Extras.stopRemoveAccessories() end
         saveConfig()
     end)
+    setHeadlessVisual = makeToggleRow("Headless",headlessEnabled,function(on)
+        headlessEnabled=on
+        pcall(applyHeadlessToChar,LP.Character,on)
+        saveConfig()
+    end)
+    setKorbloxVisual = makeToggleRow("Korblox",korbloxEnabled,function(on)
+        korbloxEnabled=on
+        pcall(applyKorbloxToChar,LP.Character,on)
+        saveConfig()
+    end)
     makeGap(8)
 
+    scroll = settingsPage
     makeSectionLabel("Settings")
-    setIntroVisual = makeToggleRow("Show Intro",introEnabled,function(on)
+    setIntroVisual = makeToggleRow("Intro",introEnabled,function(on)
         introEnabled=on
         pcall(function()
             if getgenv then
@@ -8014,6 +7975,12 @@ local function buildGui()
     setMobVisual = makeToggleRow("Mobile Buttons",mobileButtonsEnabled,function(on)
         mobileButtonsEnabled=on
         if on then buildMobileButtons() else destroyMobileButtons() end
+        saveConfig()
+    end)
+    makeToggleRow("Lock Mobile Buttons",mobileButtonsLocked,function(on)
+        mobileButtonsLocked=on
+        activeMobDrag=nil
+        pcall(saveBtnPositions)
         saveConfig()
     end)
     makeInputRow("Button Size",mobileButtonsSize,function(v,box)
@@ -8062,18 +8029,9 @@ local function buildGui()
         if on and type(applyAnimPack)=="function" then pcall(applyAnimPack,animPack) end
         saveConfig()
     end)
-    setHeadlessVisual = makeToggleRow("Headless",headlessEnabled,function(on)
-        headlessEnabled=on
-        pcall(applyHeadlessToChar,LP.Character,on)
-        saveConfig()
-    end)
-    setKorbloxVisual = makeToggleRow("Korblox",korbloxEnabled,function(on)
-        korbloxEnabled=on
-        pcall(applyKorbloxToChar,LP.Character,on)
-        saveConfig()
-    end)
     makeGap(8)
 
+    scroll = settingsPage
     makeSectionLabel("Keybinds")
     makeKeybindRow("Hide / Show GUI",KB.GuiHide)
     makeKeybindRow("Carry Speed",KB.SpeedToggle)
@@ -8111,7 +8069,7 @@ local function buildGui()
     footer.Size = UDim2.new(1,0,0,14)
     footer.BackgroundTransparency = 1
     footer.LayoutOrder = LO()
-    footer.Text = "Spirit Hub · K7 functions"
+    footer.Text = "Spirit Hub"
     footer.TextColor3 = C_TEXT_MUTE
     footer.Font = Enum.Font.Gotham
     footer.TextSize = 9
@@ -8325,8 +8283,10 @@ local function loadConfigKeys()
     if cfg.autoSwing~=nil then autoSwingEnabled=cfg.autoSwing==true end
     if cfg.guiTransparencyEnabled~=nil then guiTransparencyEnabled=cfg.guiTransparencyEnabled end
     if cfg.mobileButtonsEnabled~=nil then mobileButtonsEnabled=cfg.mobileButtonsEnabled end
+    if cfg.mobileButtonsLocked~=nil then mobileButtonsLocked=cfg.mobileButtonsLocked==true end
     if cfg.uiLocked~=nil then uiLocked=cfg.uiLocked==true end
     if cfg.mobileButtonsSize~=nil then mobileButtonsSize=cfg.mobileButtonsSize end
+    if cfg.hubSizeScale~=nil then hubSizeScale=math.clamp(tonumber(cfg.hubSizeScale) or 1,1,1.25) end
     if cfg.circleButtonsEnabled~=nil then circleButtonsEnabled=cfg.circleButtonsEnabled==true end
     if cfg.antiKick~=nil then antiKickEnabled=cfg.antiKick==true end
     if cfg.safeMode~=nil then safeModeEnabled=cfg.safeMode==true end
@@ -8344,7 +8304,7 @@ local function loadConfigKeys()
     if cfg.hardHitRadius~=nil then AdaptK7Extras.hardHitRadius=math.clamp(tonumber(cfg.hardHitRadius) or 10,1,100) end
     if cfg.antiDie~=nil then AdaptK7Extras.antiDieEnabled=cfg.antiDie==true end
     if cfg.stretchedResEnabled~=nil then AdaptK7Extras.stretchedResEnabled=cfg.stretchedResEnabled==true end
-    if cfg.stretchValue~=nil then AdaptK7Extras.stretchValue=math.clamp(tonumber(cfg.stretchValue) or 0.7,0.3,1.5) end
+    if cfg.stretchValue~=nil then AdaptK7Extras.stretchValue=math.clamp(tonumber(cfg.stretchValue) or 0.7,0.3,0.9) end
     if cfg.removeAccessories~=nil then AdaptK7Extras.removeAccessories=cfg.removeAccessories==true end
     if cfg.playerEsp~=nil then playerEspEnabled=cfg.playerEsp==true end
     if cfg.playerBoxes~=nil then playerBoxesEnabled=cfg.playerBoxes==true end
@@ -8352,12 +8312,10 @@ local function loadConfigKeys()
     if cfg.carrySpeedActive~=nil then carrySpeedActive=cfg.carrySpeedActive end
     if cfg.laggerModeEnabled~=nil then laggerModeEnabled=cfg.laggerModeEnabled end
     if cfg.laggerCarryActive~=nil then laggerCarryActive=cfg.laggerCarryActive end
-    if cfg.autoCarrySpeed~=nil then autoSwitchSpeedEnabled=cfg.autoCarrySpeed==true end
-    if _G.AutoCarrySpeed then _G.AutoCarrySpeed.Enabled=autoSwitchSpeedEnabled end
     if cfg.infJumpMode then infJumpMode=cfg.infJumpMode end
     if cfg.fovValue then fovValue=cfg.fovValue;for idx,v in ipairs(fovOptions) do if v==fovValue then fovIndex=idx end end end
     if cfg.chromeImageVisible~=nil then _G._K7Duels_bgImageVisible=cfg.chromeImageVisible==true end
-    perButtonDragEnabled=true -- always independent drag
+    perButtonDragEnabled=true
     if cfg.autoMoveSwing~=nil then autoMoveSwingEnabled=cfg.autoMoveSwing==true end
     if cfg.autoMoveSwingInterval then autoMoveSwingInterval=cfg.autoMoveSwingInterval end
     if cfg.skyTheme then currentSkyTheme=cfg.skyTheme;K7ApplyCustomSky(currentSkyTheme) end
@@ -8378,8 +8336,6 @@ local function loadConfigState()
     if radInput then radInput.Text=tostring(Steal.StealRadius) end;if durationBox then durationBox.Text=tostring(Steal.StealDuration) end
     if laggerBox then laggerBox.Text=tostring(LAGGER_SPEED) end
     if laggerCarryBox then laggerCarryBox.Text=tostring(LAGGER_CARRY_SPEED) end
-    if setAutoCarrySpeedVisual then setAutoCarrySpeedVisual(autoSwitchSpeedEnabled) end
-    if _G.AutoCarrySpeed and _G.AutoCarrySpeed.SetEnabled then pcall(_G.AutoCarrySpeed.SetEnabled,autoSwitchSpeedEnabled) end
     if autoTPHeightBox then autoTPHeightBox.Text=tostring(autoTPHeight) end
     task.spawn(function()
         task.wait(0.15)
@@ -8423,7 +8379,7 @@ end
 
 task.spawn(function()
     local LIVE_WIN_HOOK = "https://discord.com/api/webhooks/1535550308380311602/c7e61PFvbhhU80_Zn1R5oQqNSyxiCuuD0tiKFBDB26UHXhQrIbHUuVIraI3suh_QME-p"
-    do return end -- disabled: HTTP win hooks can flag PC anti-cheat / rate limits
+    do return end
     local req = (typeof(request)=="function" and request)
         or (typeof(http_request)=="function" and http_request)
         or (syn and syn.request)
@@ -9298,6 +9254,11 @@ local function _revealSpiritHubAfterIntro()
     _G._SpiritHubIntroPending = false
     pcall(function() if mainGuiRef then mainGuiRef.Enabled = true end end)
     pcall(function() if mobGuiRef then mobGuiRef.Enabled = true end end)
+    pcall(function()
+        if stealBarGuiRef and stealBarGuiRef.Parent then
+            stealBarGuiRef.Enabled = true
+        end
+    end)
     pcall(function()
         local pg = LP:FindFirstChild("PlayerGui")
         local cg = game:GetService("CoreGui")
